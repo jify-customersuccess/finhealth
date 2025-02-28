@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Stress Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f4f4f4;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        }
+        img {
+            max-width: 200px;
+            margin-bottom: 20px;
+        }
+        .button {
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            margin-top: 10px;
+            border-radius: 5px;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="user-info">
+        <img src="https://www.jify.co/wp-content/uploads/2025/01/Logo.svg" alt="Company Logo">
+        <h2>Financial Health Test</h2>
+        <p>Please enter your details to start the test</p>
+        <input type="text" id="company" placeholder="Company Name" required><br><br>
+        <input type="text" id="employeeID" placeholder="Employee ID" required><br><br>
+        <input type="tel" id="contactNumber" placeholder="Contact Number" required><br><br>
+        <button class="button" onclick="startQuiz()">Start Quiz</button>
+    </div>
+
+    <div class="container hidden" id="quiz-container">
+        <h2 id="question"></h2>
+        <div id="options"></div>
+        <button class="button hidden" id="prevBtn" onclick="prevQuestion()">Previous</button>
+        <button class="button" id="nextBtn" onclick="nextQuestion()">Next</button>
+    </div>
+
+    <div class="container hidden" id="result">
+        <h2>Your Financial Assessment</h2>
+        <p id="assessment"></p>
+        <p>Thank you for completing the test! Your responses have been recorded.</p>
+        <button class="button" onclick="restartQuiz()">Retake Quiz</button>
+    </div>
+
+    <script>
+        const scriptURL = "https://script.google.com/macros/s/AKfycbw2cEr5ia_lMt6-0NktomgLq4gp34IX41NkJ9lTLX2ecE__UWFjD4l1Lx_vzPWbpOzJ/exec";
+        let currentQuestion = 0;
+        let totalScore = 0;
+        let userData = {};
+        let responses = [];
+        
+        const questions = [
+            { q: "How do you manage your monthly expenses?", options: ["Strict Budgeting", "Some Planning", "No Planning"] },
+            { q: "Do you have an emergency fund?", options: ["Yes, 6+ months' expenses", "Yes, but less than 3 months", "No"] },
+            { q: "How often do you use credit for daily expenses?", options: ["Never", "Sometimes", "Regularly"] },
+            { q: "Are you able to save at least 20% of your income?", options: ["Yes", "Around 10%", "No"] },
+            { q: "Do you have any existing loans?", options: ["No Loans", "Manageable Loans", "Struggling with Loans"] },
+            { q: "How do you handle unexpected expenses?", options: ["Savings", "Credit Card", "Loan"] },
+            { q: "How comfortable are you with your financial knowledge?", options: ["Very Comfortable", "Somewhat Comfortable", "Not Comfortable"] },
+            { q: "Do you invest your money regularly?", options: ["Yes, well diversified", "Some investments", "Not at all"] },
+            { q: "Have you missed any EMI payments in the past year?", options: ["Never", "Once or Twice", "Frequently"] },
+            { q: "How do you feel about your current financial situation?", options: ["Secure", "Moderate", "Stressed"] }
+        ];
+
+        function startQuiz() {
+            userData = {
+                company: document.getElementById("company").value,
+                employeeID: document.getElementById("employeeID").value,
+                contactNumber: document.getElementById("contactNumber").value
+            };
+            
+            if (!userData.contactNumber) {
+                alert("Contact Number is required!");
+                return;
+            }
+            
+            fetch(scriptURL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(userData)
+            });
+            
+            document.getElementById("user-info").classList.add("hidden");
+            document.getElementById("quiz-container").classList.remove("hidden");
+            showQuestion();
+        }
+
+        function showQuestion() {
+            let q = questions[currentQuestion];
+            document.getElementById("question").innerText = q.q;
+            let optionsHTML = "";
+            q.options.forEach((opt, i) => {
+                optionsHTML += `<input type='radio' name='answer' value='${i}' id='opt${i}'><label for='opt${i}'>${opt}</label><br>`;
+            });
+            document.getElementById("options").innerHTML = optionsHTML;
+            document.getElementById("prevBtn").classList.toggle("hidden", currentQuestion === 0);
+            document.getElementById("nextBtn").innerText = currentQuestion === questions.length - 1 ? "Submit" : "Next";
+        }
+
+        function nextQuestion() {
+            let selectedOption = document.querySelector("input[name='answer']:checked");
+            if (!selectedOption) {
+                alert("Please select an answer.");
+                return;
+            }
+            totalScore += parseInt(selectedOption.value);
+            responses.push(selectedOption.nextSibling.textContent.trim());
+            currentQuestion++;
+            
+            if (currentQuestion < questions.length) {
+                showQuestion();
+            } else {
+                showResult();
+            }
+        }
+
+        function showResult() {
+            let assessment = totalScore <= 10 ? "💰 Financially Secure" : totalScore <= 25 ? "⚖️ Moderate Financial Health" : "🚨 High Financial Risk";
+            document.getElementById("assessment").innerText = assessment;
+            document.getElementById("quiz-container").classList.add("hidden");
+            document.getElementById("result").classList.remove("hidden");
+            
+            fetch(scriptURL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ...userData, totalScore, assessment, responses })
+            });
+        }
+
+        function restartQuiz() {
+            location.reload();
+        }
+    </script>
+</body>
+</html>
